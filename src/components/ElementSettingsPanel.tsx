@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import ColorPicker from "./ColorPicker";
 import UploadMedia from "./UploadMedia";
 import { saveMediaFile } from "../services/mediaStorage";
@@ -14,34 +15,60 @@ type ElementSettingsPanelProps = {
 const fontFamilies = [
   { label: "System", value: "system-ui, sans-serif" },
   { label: "Inter / UI Sans", value: "Inter, system-ui, sans-serif" },
+  { label: "SF Pro", value: "SF Pro Display, SF Pro Text, system-ui, sans-serif" },
+  { label: "Segoe UI", value: "Segoe UI, system-ui, sans-serif" },
+  { label: "Roboto", value: "Roboto, Arial, sans-serif" },
+  { label: "Noto Sans", value: "Noto Sans, Arial, sans-serif" },
+  { label: "Open Sans", value: "Open Sans, Arial, sans-serif" },
+  { label: "Lato", value: "Lato, Arial, sans-serif" },
+  { label: "Montserrat", value: "Montserrat, Arial, sans-serif" },
+  { label: "Poppins", value: "Poppins, Arial, sans-serif" },
+  { label: "Raleway", value: "Raleway, Arial, sans-serif" },
+  { label: "Oswald", value: "Oswald, Arial Narrow, sans-serif" },
   { label: "Arial", value: "Arial, Helvetica, sans-serif" },
   { label: "Helvetica", value: "Helvetica Neue, Helvetica, Arial, sans-serif" },
   { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
   { label: "Trebuchet", value: "Trebuchet MS, Arial, sans-serif" },
   { label: "Tahoma", value: "Tahoma, Geneva, sans-serif" },
+  { label: "Calibri", value: "Calibri, Candara, Segoe UI, sans-serif" },
+  { label: "Candara", value: "Candara, Calibri, Segoe UI, sans-serif" },
+  { label: "Optima", value: "Optima, Segoe UI, sans-serif" },
   { label: "Gill Sans", value: "Gill Sans, Gill Sans MT, Calibri, sans-serif" },
   { label: "Avenir", value: "Avenir, Avenir Next, system-ui, sans-serif" },
   { label: "Futura", value: "Futura, Trebuchet MS, Arial, sans-serif" },
   { label: "Century Gothic", value: "Century Gothic, AppleGothic, sans-serif" },
+  { label: "Franklin Gothic", value: "Franklin Gothic Medium, Arial Narrow, Arial, sans-serif" },
+  { label: "DIN", value: "DIN Alternate, DIN Condensed, Arial Narrow, sans-serif" },
   { label: "Serif", value: "Georgia, serif" },
   { label: "Georgia", value: "Georgia, Times, serif" },
   { label: "Times", value: "Times New Roman, Times, serif" },
   { label: "Garamond", value: "Garamond, Baskerville, serif" },
   { label: "Baskerville", value: "Baskerville, Baskerville Old Face, serif" },
+  { label: "Cambria", value: "Cambria, Georgia, serif" },
+  { label: "Cochin", value: "Cochin, Georgia, serif" },
+  { label: "Constantia", value: "Constantia, Georgia, serif" },
   { label: "Didot", value: "Didot, Bodoni 72, serif" },
+  { label: "Bodoni", value: "Bodoni 72, Didot, serif" },
   { label: "Palatino", value: "Palatino, Palatino Linotype, serif" },
   { label: "Rockwell", value: "Rockwell, Courier Bold, serif" },
+  { label: "American Typewriter", value: "American Typewriter, Rockwell, serif" },
+  { label: "Clarendon", value: "Clarendon, Rockwell, Georgia, serif" },
   { label: "Impact", value: "Impact, Haettenschweiler, sans-serif" },
   { label: "Condensed", value: "Arial Narrow, Impact, sans-serif" },
   { label: "Copperplate", value: "Copperplate, Copperplate Gothic Light, fantasy" },
+  { label: "Papyrus", value: "Papyrus, fantasy" },
   { label: "Marker", value: "Marker Felt, Chalkboard SE, fantasy" },
   { label: "Chalkboard", value: "Chalkboard SE, Comic Sans MS, cursive" },
   { label: "Brush Script", value: "Brush Script MT, cursive" },
+  { label: "Snell Roundhand", value: "Snell Roundhand, Brush Script MT, cursive" },
+  { label: "Zapfino", value: "Zapfino, Brush Script MT, cursive" },
   { label: "Comic", value: "Comic Sans MS, Comic Sans, cursive" },
   { label: "Mono", value: "ui-monospace, SFMono-Regular, monospace" },
   { label: "Courier", value: "Courier New, Courier, monospace" },
+  { label: "Consolas", value: "Consolas, Monaco, monospace" },
   { label: "Menlo", value: "Menlo, Monaco, Consolas, monospace" },
   { label: "Monaco", value: "Monaco, Consolas, monospace" },
+  { label: "Lucida Console", value: "Lucida Console, Monaco, monospace" },
 ];
 
 const borderStyles = ["solid", "dashed", "dotted", "double"] as const;
@@ -51,9 +78,131 @@ type BorderableMediaElement = Extract<
   { type: "image" | "video" }
 >;
 
+type TextElement = Extract<InteractiveElement, { type: "text" }>;
+
 // Reuses the standard input styling across all settings controls.
 function fieldClass() {
   return "rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white";
+}
+
+function getFontLabel(value: string) {
+  return fontFamilies.find((font) => font.value === value)?.label || "Custom";
+}
+
+function FontFamilyPicker({
+  element,
+  onPreview,
+  onCommit,
+}: {
+  element: TextElement;
+  onPreview: (fontFamily: string) => void;
+  onCommit: (fontFamily: string) => void;
+}) {
+  const currentValue = element.fontFamily || fontFamilies[0].value;
+  const [isOpen, setIsOpen] = useState(false);
+  const [committedValue, setCommittedValue] = useState(currentValue);
+  const committedValueRef = useRef(currentValue);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const restorePreview = () => {
+    onPreview(committedValueRef.current);
+  };
+
+  const openMenu = () => {
+    committedValueRef.current = currentValue;
+    setCommittedValue(currentValue);
+    setIsOpen(true);
+  };
+
+  const closeMenu = () => {
+    restorePreview();
+    setIsOpen(false);
+  };
+
+  const commitFont = (fontFamily: string) => {
+    committedValueRef.current = fontFamily;
+    setCommittedValue(fontFamily);
+    onCommit(fontFamily);
+    setIsOpen(false);
+  };
+
+  return (
+    <label className="grid gap-2 text-xs font-semibold text-zinc-300">
+      Font family
+      <div
+        ref={wrapperRef}
+        className="relative"
+        onMouseLeave={() => {
+          if (isOpen) closeMenu();
+        }}
+        onBlur={(event) => {
+          if (!wrapperRef.current?.contains(event.relatedTarget)) {
+            closeMenu();
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeMenu();
+          }
+        }}
+      >
+        <button
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          onClick={() => (isOpen ? closeMenu() : openMenu())}
+          className={`${fieldClass()} flex w-full items-center justify-between gap-3 pr-3 text-left`}
+          style={{ fontFamily: currentValue }}
+        >
+          <span className="truncate">{getFontLabel(currentValue)}</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4 shrink-0 text-white"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+
+        {isOpen && (
+          <div
+            role="listbox"
+            aria-label="Font family"
+            className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-96 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 py-1 text-sm text-white shadow-2xl"
+          >
+            {fontFamilies.map((font) => {
+              const isSelected = font.value === committedValue;
+
+              return (
+                <button
+                  key={font.value}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseEnter={() => onPreview(font.value)}
+                  onFocus={() => onPreview(font.value)}
+                  onClick={() => commitFont(font.value)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-zinc-800 focus:bg-zinc-800 focus:outline-none"
+                  style={{ fontFamily: font.value }}
+                >
+                  <span className="w-4 text-center text-xs">
+                    {isSelected ? "✓" : ""}
+                  </span>
+                  <span className="truncate">{font.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </label>
+  );
 }
 
 // Renders background controls and property editors for the selected element.
@@ -256,36 +405,12 @@ export default function ElementSettingsPanel({
                   />
                 </label>
 
-                <label className="grid gap-2 text-xs font-semibold text-zinc-300">
-                  Font family
-                  <span className="relative">
-                    <select
-                      value={selectedElement.fontFamily || fontFamilies[0].value}
-                      onChange={(event) =>
-                        updateSelected({ fontFamily: event.target.value })
-                      }
-                      className={`${fieldClass()} w-full appearance-none pr-9`}
-                    >
-                      {fontFamilies.map((font) => (
-                        <option key={font.value} value={font.value}>
-                          {font.label}
-                        </option>
-                      ))}
-                    </select>
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </span>
-                </label>
+                <FontFamilyPicker
+                  key={selectedElement.id || "selected-text-font"}
+                  element={selectedElement}
+                  onPreview={(fontFamily) => updateSelected({ fontFamily })}
+                  onCommit={(fontFamily) => updateSelected({ fontFamily })}
+                />
 
                 <label className="grid gap-2 text-xs font-semibold text-zinc-300">
                   Font weight
