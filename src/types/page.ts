@@ -1,5 +1,4 @@
 export type PageType =
-  | "welcome"
   | "challenge"
   | "trivia"
   | "orderConfirmation"
@@ -41,6 +40,9 @@ export type CountdownElement = ElementBase & {
   type: "countdown";
   seconds: number;
   size?: number;
+  color?: string;
+  bgColor?: string;
+  borderColor?: string;
 };
 
 export type ImageElement = ElementBase & {

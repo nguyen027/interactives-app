@@ -1,11 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import EditablePreview from "./components/EditablePreview";
-import InteractiveRenderer from "./components/InteractiveRenderer";
 import SavedInteractivePage from "./components/SavedInteractivePage";
 import { pageKeys, pages } from "./config/pages";
 import AppLayout from "./layouts/AppLayout";
 
-const publicPageKeys = pageKeys.filter((key) => key !== "welcome");
+const publicPageKeys = pageKeys;
 
 // Defines all public and preview routes for the interactive pages.
 export default function App() {
@@ -18,7 +17,7 @@ export default function App() {
         <Route path="/preview" element={<AppLayout />}>
           <Route
             index
-            element={<InteractiveRenderer page={pages.welcome} mode="preview" />}
+            element={<Navigate to="/preview/challenge" replace />}
           />
           {publicPageKeys.map((key) => (
             [

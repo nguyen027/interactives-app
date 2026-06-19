@@ -47,7 +47,6 @@ function getPreviewPath(pageKey: PageKey, instanceId?: string) {
     trivia: "/preview/trivia",
     orderConfirmation: "/preview/order_confirmation",
     propBet: "/preview/prop_bet",
-    welcome: "/preview",
   }[pageKey];
 
   return instanceId ? `${base}/${instanceId}` : base;

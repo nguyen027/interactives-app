@@ -360,6 +360,27 @@ export default function ElementSettingsPanel({
                     className={fieldClass()}
                   />
                 </label>
+
+                <ColorPicker
+                  id="countdown-text-color"
+                  label="Text color"
+                  value={selectedElement.color || "#ffffff"}
+                  onChange={(color) => updateSelected({ color })}
+                />
+
+                <ColorPicker
+                  id="countdown-bg-color"
+                  label="Background color"
+                  value={selectedElement.bgColor || "#000000"}
+                  onChange={(bgColor) => updateSelected({ bgColor })}
+                />
+
+                <ColorPicker
+                  id="countdown-border-color"
+                  label="Border color"
+                  value={selectedElement.borderColor || "#ffffff"}
+                  onChange={(borderColor) => updateSelected({ borderColor })}
+                />
               </>
             )}
 

@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 type CountdownProps = {
   seconds: number;
   size?: number;
+  color?: string;
+  bgColor?: string;
+  borderColor?: string;
 };
 
 // Formats seconds into the M:SS display shown inside the timer.
@@ -14,7 +17,13 @@ function formatTime(totalSeconds: number) {
 }
 
 // Runs the one-second countdown and renders the circular timer face.
-function CountdownTimer({ seconds, size = 112 }: CountdownProps) {
+function CountdownTimer({
+  seconds,
+  size = 112,
+  color = "#ffffff",
+  bgColor = "rgb(0 0 0 / 0.5)",
+  borderColor = "rgb(255 255 255 / 0.8)",
+}: CountdownProps) {
   const [timeLeft, setTimeLeft] = useState(seconds);
   const borderWidth = Math.max(Math.round(size / 28), 2);
   const fontSize = Math.max(Math.round(size / 3.7), 14);
@@ -31,12 +40,15 @@ function CountdownTimer({ seconds, size = 112 }: CountdownProps) {
 
   return (
     <div
-      className="flex items-center justify-center rounded-full border-white/80 bg-black/50 font-bold text-white"
+      className="flex items-center justify-center rounded-full font-bold"
       style={{
         width: size,
         height: size,
         borderWidth,
         fontSize,
+        color,
+        background: bgColor,
+        borderColor,
       }}
     >
       {formatTime(timeLeft)}
@@ -45,6 +57,11 @@ function CountdownTimer({ seconds, size = 112 }: CountdownProps) {
 }
 
 // Remounts the timer whenever its initial seconds or size changes.
-export default function Countdown({ seconds, size }: CountdownProps) {
-  return <CountdownTimer key={`${seconds}-${size}`} seconds={seconds} size={size} />;
+export default function Countdown(props: CountdownProps) {
+  return (
+    <CountdownTimer
+      key={`${props.seconds}-${props.size}`}
+      {...props}
+    />
+  );
 }

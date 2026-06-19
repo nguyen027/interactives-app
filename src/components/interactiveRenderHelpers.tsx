@@ -110,7 +110,13 @@ export function renderInteractiveElement(element: InteractiveElement) {
   if (element.type === "countdown") {
     return (
       <div key={key} className={element.className} style={getPositionStyle(element)}>
-        <Countdown seconds={element.seconds} size={element.size} />
+        <Countdown
+          seconds={element.seconds}
+          size={element.size}
+          color={element.color}
+          bgColor={element.bgColor}
+          borderColor={element.borderColor}
+        />
       </div>
     );
   }

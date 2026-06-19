@@ -1,7 +1,6 @@
 import type { InteractivePageConfig } from "../types/page";
 
 export const pageKeys = [
-  "welcome",
   "challenge",
   "trivia",
   "orderConfirmation",
@@ -11,15 +10,6 @@ export const pageKeys = [
 export type PageKey = (typeof pageKeys)[number];
 
 export const pages: Record<PageKey, InteractivePageConfig> = {
-  welcome: {
-    type: "welcome",
-    title: "Welcome",
-    navLabel: "Welcome",
-    previewPath: "/preview",
-    subtitle: "Select an interactive from the left menu.",
-    message: "Dynamic React + Tailwind interactive platform.",
-  },
-
   challenge: {
     slug: "challenge",
     type: "challenge",
@@ -135,9 +125,44 @@ export const pages: Record<PageKey, InteractivePageConfig> = {
     publicPath: "/order_confirmation",
     previewPath: "/preview/order_confirmation",
     aliases: ["/order-confirmation"],
-    subtitle: "Simple confirmation page.",
-    name: "Customer name",
-    message: "Your order is confirmed.",
+    background: {
+      type: "color",
+      color: "#18181b",
+    },
+    elements: [
+      {
+        id: "title",
+        type: "text",
+        text: "Order Confirmation",
+        x: 50,
+        y: 20,
+        fontSize: 48,
+        color: "#ffffff",
+        bgOpacity: 0,
+      },
+      {
+        id: "name",
+        type: "text",
+        text: "Customer name",
+        x: 50,
+        y: 40,
+        fontSize: 30,
+        color: "#d4d4d8",
+        bgOpacity: 0,
+      },
+      {
+        id: "message",
+        type: "text",
+        text: "Your order is confirmed.",
+        x: 50,
+        y: 52,
+        width: "64%",
+        fontSize: 52,
+        color: "#ffffff",
+        bgColor: "#000000",
+        bgOpacity: 0.25,
+      },
+    ],
   },
 
   propBet: {

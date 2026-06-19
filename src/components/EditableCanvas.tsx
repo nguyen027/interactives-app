@@ -42,7 +42,15 @@ function renderEditableContent(element: InteractiveElement) {
   }
 
   if (element.type === "countdown") {
-    return <Countdown seconds={element.seconds} size={element.size} />;
+    return (
+      <Countdown
+        seconds={element.seconds}
+        size={element.size}
+        color={element.color}
+        bgColor={element.bgColor}
+        borderColor={element.borderColor}
+      />
+    );
   }
 
   if (element.type === "image") {
