@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { previewNavItems } from "../config/pages";
 
+// Renders the preview navigation for every configured page.
 export default function Sidebar() {
   return (
     <aside className="h-screen w-72 shrink-0 bg-zinc-950 border-r border-zinc-800 p-5">

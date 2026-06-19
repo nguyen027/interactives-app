@@ -1,10 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import EditablePreview from "./components/EditablePreview";
 import InteractiveRenderer from "./components/InteractiveRenderer";
+import SavedInteractivePage from "./components/SavedInteractivePage";
 import { pageKeys, pages } from "./config/pages";
 import AppLayout from "./layouts/AppLayout";
 
 const publicPageKeys = pageKeys.filter((key) => key !== "welcome");
 
+// Defines all public and preview routes for the interactive pages.
 export default function App() {
   return (
     <BrowserRouter>
@@ -21,7 +24,13 @@ export default function App() {
             <Route
               key={key}
               path={(pages[key].previewPath || "").replace("/preview/", "")}
-              element={<InteractiveRenderer page={pages[key]} mode="preview" />}
+              element={
+                key === "challenge" ? (
+                  <EditablePreview pageKey={key} />
+                ) : (
+                  <InteractiveRenderer page={pages[key]} mode="preview" />
+                )
+              }
             />
           ))}
         </Route>
@@ -30,7 +39,13 @@ export default function App() {
           <Route
             key={key}
             path={pages[key].publicPath}
-            element={<InteractiveRenderer page={pages[key]} />}
+            element={
+              key === "challenge" ? (
+                <SavedInteractivePage pageKey={key} />
+              ) : (
+                <InteractiveRenderer page={pages[key]} />
+              )
+            }
           />
         ))}
 
@@ -39,7 +54,13 @@ export default function App() {
             <Route
               key={alias}
               path={alias}
-              element={<InteractiveRenderer page={pages[key]} />}
+              element={
+                key === "challenge" ? (
+                  <SavedInteractivePage pageKey={key} />
+                ) : (
+                  <InteractiveRenderer page={pages[key]} />
+                )
+              }
             />
           )),
         )}

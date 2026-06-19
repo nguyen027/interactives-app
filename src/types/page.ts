@@ -7,6 +7,14 @@ export type PageType =
 
 export type ElementAlign = "left" | "center" | "right";
 
+export type PageBackground = {
+  type: "image" | "video" | "color";
+  src?: string;
+  color?: string;
+  storageId?: string;
+  name?: string;
+};
+
 export type ElementBase = {
   id?: string;
   x?: number;
@@ -24,6 +32,7 @@ export type TextElement = ElementBase & {
   color?: string;
   align?: ElementAlign;
   fontFamily?: string;
+  fontWeight?: number;
   bgColor?: string;
   bgOpacity?: number;
 };
@@ -31,18 +40,31 @@ export type TextElement = ElementBase & {
 export type CountdownElement = ElementBase & {
   type: "countdown";
   seconds: number;
+  size?: number;
 };
 
 export type ImageElement = ElementBase & {
   type: "image";
-  src: string;
+  src?: string;
+  storageId?: string;
+  name?: string;
   alt?: string;
   opacity?: number;
+  borderWidth?: number;
+  borderColor?: string;
+  borderStyle?: "solid" | "dashed" | "dotted" | "double";
+  borderRadius?: number;
 };
 
 export type VideoElement = ElementBase & {
   type: "video";
-  src: string;
+  src?: string;
+  storageId?: string;
+  name?: string;
+  borderWidth?: number;
+  borderColor?: string;
+  borderStyle?: "solid" | "dashed" | "dotted" | "double";
+  borderRadius?: number;
 };
 
 export type ButtonElement = ElementBase & {
@@ -52,6 +74,7 @@ export type ButtonElement = ElementBase & {
   fontSize?: number;
   color?: string;
   bgColor?: string;
+  borderRadius?: number;
 };
 
 export type CardElement = ElementBase & {
@@ -69,6 +92,7 @@ export type InteractiveElement =
   | CardElement;
 
 export type InteractivePageConfig = {
+  slug?: string;
   type: PageType;
   title: string;
   navLabel?: string;
@@ -76,6 +100,7 @@ export type InteractivePageConfig = {
   previewPath?: string;
   aliases?: string[];
   subtitle?: string;
+  background?: PageBackground;
   backgroundImage?: string;
   backgroundVideo?: string;
   image?: string;

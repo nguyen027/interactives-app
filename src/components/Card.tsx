@@ -5,6 +5,7 @@ type CardProps = {
   className?: string;
 };
 
+// Provides the shared translucent card surface used by legacy layouts.
 export default function Card({ children, className = "" }: CardProps) {
   return (
     <div

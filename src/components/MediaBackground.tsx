@@ -3,6 +3,7 @@ type MediaBackgroundProps = {
   video?: string;
 };
 
+// Renders a simple full-screen media background from legacy image/video props.
 export default function MediaBackground({ image, video }: MediaBackgroundProps) {
   if (video) {
     return (

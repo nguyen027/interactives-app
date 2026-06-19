@@ -1,5 +1,7 @@
+// Parses supported legacy query parameters into typed renderer overrides.
 export function getUrlParams() {
   const params = new URLSearchParams(window.location.search);
+  // Converts a numeric query value while ignoring missing or invalid inputs.
   const numberParam = (key: string) => {
     const value = params.get(key);
     if (!value) return undefined;

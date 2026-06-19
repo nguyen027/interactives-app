@@ -3,6 +3,7 @@ type PageHeaderProps = {
   subtitle?: string;
 };
 
+// Renders the title and optional subtitle for legacy page layouts.
 export default function PageHeader({ title, subtitle }: PageHeaderProps) {
   return (
     <header className="mb-6">

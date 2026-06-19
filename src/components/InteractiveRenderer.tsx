@@ -1,9 +1,10 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
+import BackgroundRenderer from "./BackgroundRenderer";
 import Card from "./Card";
 import Countdown from "./Countdown";
-import MediaBackground from "./MediaBackground";
-import OverlayText from "./OverlayText";
 import PageHeader from "./PageHeader";
+import ScaledArtboard from "./ScaledArtboard";
+import { renderInteractiveElement } from "./interactiveRenderHelpers";
 import type { InteractiveElement, InteractivePageConfig } from "../types/page";
 import { getUrlParams } from "../utils/getUrlParams";
 
@@ -12,61 +13,7 @@ type InteractiveRendererProps = {
   mode?: "public" | "preview";
 };
 
-function clampOpacity(value: number | undefined) {
-  if (value === undefined) return 0.45;
-
-  return Math.min(Math.max(value, 0), 1);
-}
-
-function getOverlayBackground(color = "#000000", opacity?: number) {
-  const alpha = clampOpacity(opacity);
-
-  if (alpha === 0) return "transparent";
-
-  if (color.startsWith("rgba(") || color.startsWith("rgb(")) {
-    return color;
-  }
-
-  if (color.startsWith("#")) {
-    const hex = color.slice(1);
-    const normalized =
-      hex.length === 3
-        ? hex
-            .split("")
-            .map((char) => `${char}${char}`)
-            .join("")
-        : hex;
-
-    if (normalized.length === 6) {
-      const red = parseInt(normalized.slice(0, 2), 16);
-      const green = parseInt(normalized.slice(2, 4), 16);
-      const blue = parseInt(normalized.slice(4, 6), 16);
-
-      return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-    }
-  }
-
-  return `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
-}
-
-function getSize(value: number | string | undefined) {
-  if (typeof value === "number") return `${value}px`;
-
-  return value;
-}
-
-function getPositionStyle(element: InteractiveElement): CSSProperties {
-  return {
-    position: "absolute",
-    left: `${element.x ?? 50}%`,
-    top: `${element.y ?? 50}%`,
-    width: getSize(element.width),
-    height: getSize(element.height),
-    transform: "translate(-50%, -50%)",
-    zIndex: element.zIndex ?? 10,
-  };
-}
-
+// Reads a numeric query parameter and ignores invalid values.
 function getNumberParam(searchParams: URLSearchParams, key: string) {
   const value = searchParams.get(key);
   if (!value) return undefined;
@@ -75,6 +22,7 @@ function getNumberParam(searchParams: URLSearchParams, key: string) {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+// Reads a text alignment query parameter only when it matches supported values.
 function getAlignParam(searchParams: URLSearchParams, key: string) {
   const value = searchParams.get(key);
 
@@ -85,6 +33,7 @@ function getAlignParam(searchParams: URLSearchParams, key: string) {
   return undefined;
 }
 
+// Builds URL-driven overrides for one text element.
 function getTextOverride(
   element: InteractiveElement,
   searchParams: URLSearchParams,
@@ -148,6 +97,7 @@ function getTextOverride(
   };
 }
 
+// Finds URL-driven labels for configured button elements.
 function getButtonLabelOverride(
   element: InteractiveElement,
   searchParams: URLSearchParams,
@@ -165,6 +115,7 @@ function getButtonLabelOverride(
   return searchParams.get(`button${index}`) || undefined;
 }
 
+// Applies supported URL query overrides to configured page elements.
 function mergeUrlOverrides(elements: InteractiveElement[]) {
   const params = getUrlParams();
   const searchParams = new URLSearchParams(window.location.search);
@@ -241,126 +192,121 @@ function mergeUrlOverrides(elements: InteractiveElement[]) {
   });
 }
 
-function renderElement(element: InteractiveElement) {
-  const key = element.id || `${element.type}-${element.x}-${element.y}`;
+// Provides fullscreen controls for public interactive pages.
+function FullscreenButton({
+  targetRef,
+}: {
+  targetRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isSupported = document.fullscreenEnabled;
 
-  if (element.type === "text") {
-    return (
-      <OverlayText
-        key={key}
-        text={element.text}
-        x={element.x}
-        y={element.y}
-        width={getSize(element.width)}
-        height={getSize(element.height)}
-        align={element.align}
-        fontSize={element.fontSize}
-        color={element.color}
-        fontFamily={element.fontFamily}
-        background={getOverlayBackground(element.bgColor, element.bgOpacity)}
-      />
-    );
-  }
+  // Tracks whether this renderer shell is the current fullscreen element.
+  useEffect(() => {
+    const updateFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === targetRef.current);
+    };
 
-  if (element.type === "countdown") {
-    return (
-      <div key={key} className={element.className} style={getPositionStyle(element)}>
-        <Countdown seconds={element.seconds} />
-      </div>
-    );
-  }
+    document.addEventListener("fullscreenchange", updateFullscreenState);
 
-  if (element.type === "image") {
-    return (
-      <img
-        key={key}
-        src={element.src}
-        alt={element.alt || ""}
-        className={element.className}
-        style={{
-          ...getPositionStyle(element),
-          opacity: element.opacity,
-          objectFit: "contain",
-        }}
-      />
-    );
-  }
+    return () => {
+      document.removeEventListener("fullscreenchange", updateFullscreenState);
+    };
+  }, [targetRef]);
 
-  if (element.type === "video") {
-    return (
-      <video
-        key={key}
-        src={element.src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        className={element.className}
-        style={{ ...getPositionStyle(element), objectFit: "cover" }}
-      />
-    );
-  }
+  if (!isSupported) return null;
 
-  if (element.type === "button") {
-    return (
-      <a
-        key={key}
-        href={element.href}
-        className={[
-          "rounded-2xl px-6 py-4 text-center font-bold shadow-xl transition hover:scale-105",
-          element.className || "",
-        ].join(" ")}
-        style={{
-          ...getPositionStyle(element),
-          color: element.color || "#ffffff",
-          background: element.bgColor || "#7c3aed",
-          fontSize: element.fontSize,
-          width: getSize(element.width),
-        }}
-      >
-        {element.label}
-      </a>
-    );
-  }
+  // Enters or exits fullscreen for the renderer shell.
+  const toggleFullscreen = async () => {
+    const target = targetRef.current;
+    if (!target) return;
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    await target.requestFullscreen();
+  };
 
   return (
-    <div key={key} style={getPositionStyle(element)}>
-      <Card className={element.className || ""}>
-        {element.title && <h3 className="text-2xl font-bold">{element.title}</h3>}
-        {element.body && <p className="mt-3 text-zinc-300">{element.body}</p>}
-      </Card>
-    </div>
+    <button
+      type="button"
+      aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      onClick={() => void toggleFullscreen()}
+      className="absolute right-4 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-white/40 bg-black/45 text-white shadow-xl backdrop-blur transition hover:bg-black/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.4"
+      >
+        {isFullscreen ? (
+          <>
+            <path d="M8 3v5H3" />
+            <path d="M16 3v5h5" />
+            <path d="M8 21v-5H3" />
+            <path d="M16 21v-5h5" />
+          </>
+        ) : (
+          <>
+            <path d="M3 9V3h6" />
+            <path d="M21 9V3h-6" />
+            <path d="M3 15v6h6" />
+            <path d="M21 15v6h-6" />
+          </>
+        )}
+      </svg>
+    </button>
   );
 }
 
+// Renders an interactive page using configured elements or legacy page layouts.
 export default function InteractiveRenderer({
   page,
   mode = "public",
 }: InteractiveRendererProps) {
+  const shellRef = useRef<HTMLDivElement>(null);
   const params = getUrlParams();
   const isPublic = mode === "public";
+  const useLegacyUrlParams = page.type !== "challenge";
 
-  const title = params.title || page.title;
-  const subtitle = params.subtitle || page.subtitle;
-  const image =
-    params.image || page.backgroundImage || page.image || undefined;
-  const video =
-    params.video || page.backgroundVideo || page.video || undefined;
-  const countdown = params.countdown ?? page.countdown;
-  const question = params.question || page.question;
-  const message = params.message || page.message;
+  const title = useLegacyUrlParams ? params.title || page.title : page.title;
+  const subtitle = useLegacyUrlParams
+    ? params.subtitle || page.subtitle
+    : page.subtitle;
+  const image = useLegacyUrlParams
+    ? params.image || page.backgroundImage || page.image || undefined
+    : page.backgroundImage || page.image || undefined;
+  const video = useLegacyUrlParams
+    ? params.video || page.backgroundVideo || page.video || undefined
+    : page.backgroundVideo || page.video || undefined;
+  const countdown = useLegacyUrlParams
+    ? params.countdown ?? page.countdown
+    : page.countdown;
+  const question = useLegacyUrlParams
+    ? params.question || page.question
+    : page.question;
+  const message = useLegacyUrlParams ? params.message || page.message : page.message;
   const name = params.name || page.name;
-  const options = [params.a, params.b, params.c, params.d].filter(
-    Boolean,
-  ) as string[];
+  const options = useLegacyUrlParams
+    ? ([params.a, params.b, params.c, params.d].filter(Boolean) as string[])
+    : [];
   const finalOptions = options.length ? options : page.options;
-  const yesLabel = params.yes || page.yesLabel;
-  const noLabel = params.no || page.noLabel;
-  const hasMedia = Boolean(image || video);
-  const configuredElements = page.elements || [];
+  const yesLabel = useLegacyUrlParams ? params.yes || page.yesLabel : page.yesLabel;
+  const noLabel = useLegacyUrlParams ? params.no || page.noLabel : page.noLabel;
+  const hasMedia = Boolean(page.background || image || video);
+  const hasElementList = Array.isArray(page.elements);
+  const configuredElements = page.elements ?? [];
   const fallbackElements: InteractiveElement[] = [];
 
-  if (!configuredElements.length && (params.text || page.overlayText)) {
+  if (!hasElementList && (params.text || page.overlayText)) {
     fallbackElements.push({
       type: "text",
       text: params.text || page.overlayText || "",
@@ -375,7 +321,7 @@ export default function InteractiveRenderer({
     });
   }
 
-  if (!configuredElements.length && countdown !== undefined && countdown > 0) {
+  if (!hasElementList && countdown !== undefined && countdown > 0) {
     fallbackElements.push({
       type: "countdown",
       x: 90,
@@ -384,9 +330,11 @@ export default function InteractiveRenderer({
     });
   }
 
-  const elements = mergeUrlOverrides(
-    configuredElements.length ? configuredElements : fallbackElements,
-  );
+  const elements = useLegacyUrlParams
+    ? mergeUrlOverrides(hasElementList ? configuredElements : fallbackElements)
+    : hasElementList
+      ? configuredElements
+      : fallbackElements;
 
   const shellClass = [
     "relative overflow-hidden bg-zinc-900 text-white",
@@ -398,11 +346,12 @@ export default function InteractiveRenderer({
     hasMedia ? "bg-black/35" : "",
   ].join(" ");
 
-  if (elements.length > 0) {
+  if (hasElementList || elements.length > 0) {
     return (
-      <div className={shellClass}>
-        <MediaBackground image={image} video={video} />
-        {elements.map(renderElement)}
+      <div ref={shellRef} className={shellClass}>
+        <BackgroundRenderer background={page.background} image={image} video={video} />
+        <ScaledArtboard>{elements.map(renderInteractiveElement)}</ScaledArtboard>
+        {isPublic && <FullscreenButton targetRef={shellRef} />}
       </div>
     );
   }
@@ -410,7 +359,9 @@ export default function InteractiveRenderer({
   if (page.type === "welcome") {
     return (
       <div className={shellClass}>
-        {hasMedia && <MediaBackground image={image} video={video} />}
+        {hasMedia && (
+          <BackgroundRenderer background={page.background} image={image} video={video} />
+        )}
         <div className={`${contentClass} p-8`}>
           <PageHeader title={title} subtitle={subtitle} />
 
@@ -426,7 +377,9 @@ export default function InteractiveRenderer({
   if (page.type === "trivia") {
     return (
       <div className={shellClass}>
-        {hasMedia && <MediaBackground image={image} video={video} />}
+        {hasMedia && (
+          <BackgroundRenderer background={page.background} image={image} video={video} />
+        )}
         <div className={`${contentClass} p-8`}>
           <PageHeader title={title} subtitle={subtitle} />
 
@@ -452,7 +405,9 @@ export default function InteractiveRenderer({
   if (page.type === "orderConfirmation") {
     return (
       <div className={shellClass}>
-        {hasMedia && <MediaBackground image={image} video={video} />}
+        {hasMedia && (
+          <BackgroundRenderer background={page.background} image={image} video={video} />
+        )}
         <div className={`${contentClass} p-8`}>
           <PageHeader title={title} subtitle={subtitle} />
 
@@ -473,7 +428,9 @@ export default function InteractiveRenderer({
 
   return (
     <div className={shellClass}>
-      {hasMedia && <MediaBackground image={image} video={video} />}
+      {hasMedia && (
+        <BackgroundRenderer background={page.background} image={image} video={video} />
+      )}
       <div className={`${contentClass} p-8`}>
         <PageHeader title={title} subtitle={subtitle} />
 
