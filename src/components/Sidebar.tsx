@@ -5,9 +5,14 @@ import { previewNavItems } from "../config/pages";
 export default function Sidebar() {
   return (
     <aside className="h-screen w-72 shrink-0 bg-zinc-950 border-r border-zinc-800 p-5">
-      <div className="mb-8">
-        <h1 className="text-xl font-bold text-white">Interactives</h1>
-        <p className="text-sm text-zinc-400">Dynamic pages</p>
+      <div className="mb-8 flex items-center gap-3">
+        <img
+          src="/favicon.svg"
+          alt=""
+          className="h-10 w-10 shrink-0"
+          aria-hidden="true"
+        />
+        <h1 className="text-2xl font-bold text-white">Interactives</h1>
       </div>
 
       <nav className="space-y-2">
