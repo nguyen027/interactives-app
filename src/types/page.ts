@@ -10,6 +10,7 @@ export type PageBackground = {
   type: "image" | "video" | "color";
   src?: string;
   color?: string;
+  vignette?: boolean;
   storageId?: string;
   name?: string;
 };

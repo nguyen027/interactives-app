@@ -347,18 +347,42 @@ export default function ElementSettingsPanel({
           Background
         </h2>
         <div className="mt-3 grid gap-3">
-          <UploadMedia onChange={onBackgroundChange} onError={onMediaError} />
+          <UploadMedia
+            onChange={(nextBackground) =>
+              onBackgroundChange({
+                ...nextBackground,
+                color: background?.color,
+                vignette: background?.vignette ?? true,
+              })
+            }
+            onError={onMediaError}
+          />
           <ColorPicker
             id="background-color"
             label="Background color"
-            value={background?.color || "#250000"}
+            value={background?.color || "#2563eb"}
             onChange={(color) =>
               onBackgroundChange({
                 type: "color",
                 color,
+                vignette: background?.vignette ?? true,
               })
             }
           />
+          <label className="flex items-center justify-between gap-3 rounded bg-zinc-900 px-3 py-2 text-sm font-semibold text-zinc-300">
+            Vignette
+            <input
+              type="checkbox"
+              checked={background?.vignette ?? true}
+              onChange={(event) =>
+                onBackgroundChange({
+                  ...(background || { type: "color", color: "#2563eb" }),
+                  vignette: event.target.checked,
+                })
+              }
+              className="h-4 w-4 accent-violet-500"
+            />
+          </label>
         </div>
       </div>
 
