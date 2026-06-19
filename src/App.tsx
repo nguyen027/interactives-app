@@ -21,47 +21,53 @@ export default function App() {
             element={<InteractiveRenderer page={pages.welcome} mode="preview" />}
           />
           {publicPageKeys.map((key) => (
-            <Route
-              key={key}
-              path={(pages[key].previewPath || "").replace("/preview/", "")}
-              element={
-                key === "challenge" ? (
-                  <EditablePreview pageKey={key} />
-                ) : (
-                  <InteractiveRenderer page={pages[key]} mode="preview" />
-                )
-              }
-            />
+            [
+              <Route
+                key={key}
+                path={(pages[key].previewPath || "").replace("/preview/", "")}
+                element={<EditablePreview pageKey={key} />}
+              />,
+              <Route
+                key={`${key}-instance`}
+                path={`${(pages[key].previewPath || "").replace(
+                  "/preview/",
+                  "",
+                )}/:instanceId`}
+                element={<EditablePreview pageKey={key} />}
+              />,
+            ]
           ))}
         </Route>
 
         {publicPageKeys.map((key) => (
-          <Route
-            key={key}
-            path={pages[key].publicPath}
-            element={
-              key === "challenge" ? (
-                <SavedInteractivePage pageKey={key} />
-              ) : (
-                <InteractiveRenderer page={pages[key]} />
-              )
-            }
-          />
+          [
+            <Route
+              key={key}
+              path={pages[key].publicPath}
+              element={<SavedInteractivePage pageKey={key} />}
+            />,
+            <Route
+              key={`${key}-instance`}
+              path={`${pages[key].publicPath}/:instanceId`}
+              element={<SavedInteractivePage pageKey={key} />}
+            />,
+          ]
         ))}
 
         {publicPageKeys.flatMap((key) =>
           (pages[key].aliases || []).map((alias) => (
-            <Route
-              key={alias}
-              path={alias}
-              element={
-                key === "challenge" ? (
-                  <SavedInteractivePage pageKey={key} />
-                ) : (
-                  <InteractiveRenderer page={pages[key]} />
-                )
-              }
-            />
+            [
+              <Route
+                key={alias}
+                path={alias}
+                element={<SavedInteractivePage pageKey={key} />}
+              />,
+              <Route
+                key={`${alias}-instance`}
+                path={`${alias}/:instanceId`}
+                element={<SavedInteractivePage pageKey={key} />}
+              />,
+            ]
           )),
         )}
       </Routes>

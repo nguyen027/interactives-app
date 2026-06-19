@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import EditableCanvas from "./EditableCanvas";
 import EditorToolbar, { type AddElementType } from "./EditorToolbar";
 import EditorViewport from "./EditorViewport";
@@ -7,8 +8,17 @@ import InteractiveRenderer from "./InteractiveRenderer";
 import type { PageKey } from "../config/pages";
 import { saveMediaFile } from "../services/mediaStorage";
 import {
+  createInstance,
+  deleteInstance,
+  duplicateInstance,
+  listInstances,
+  loadInstancePageConfig,
+  renameInstance,
+  saveInstance,
+} from "../services/instanceConfig";
+import {
   hydratePageConfigMedia,
-  loadPageConfig,
+  getDefaultPageConfig,
   savePageConfig,
 } from "../services/pageConfig";
 import type {
@@ -29,6 +39,18 @@ function isTypingTarget(target: EventTarget | null) {
   return Boolean(
     target.closest("input, textarea, select") || target.isContentEditable,
   );
+}
+
+function getPreviewPath(pageKey: PageKey, instanceId?: string) {
+  const base = {
+    challenge: "/preview/challenge",
+    trivia: "/preview/trivia",
+    orderConfirmation: "/preview/order_confirmation",
+    propBet: "/preview/prop_bet",
+    welcome: "/preview",
+  }[pageKey];
+
+  return instanceId ? `${base}/${instanceId}` : base;
 }
 
 // Creates a default text element when the editor adds text.
@@ -111,27 +133,47 @@ function createVideoElement(
 
 // Provides the preview page plus the in-browser editor for configurable pages.
 export default function EditablePreview({ pageKey }: EditablePreviewProps) {
+  const navigate = useNavigate();
+  const params = useParams();
+  const [searchParams] = useSearchParams();
+  const routeInstanceId = params.instanceId;
+  const activeInstanceId = routeInstanceId || searchParams.get("instance") || undefined;
   const [page, setPage] = useState<InteractivePageConfig>(() =>
-    loadPageConfig(pageKey),
+    loadInstancePageConfig(pageKey, activeInstanceId),
   );
+  const [instancesVersion, setInstancesVersion] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [statusMessage, setStatusMessage] = useState<string>();
   const mediaInputRef = useRef<HTMLInputElement>(null);
+  const instanceNameRef = useRef<HTMLInputElement>(null);
   const pendingMediaTypeRef = useRef<"image" | "video" | undefined>(undefined);
+  const instances = useMemo(() => {
+    void instancesVersion;
+    return listInstances(pageKey);
+  }, [instancesVersion, pageKey]);
+  const activeInstance = useMemo(
+    () => instances.find((instance) => instance.id === activeInstanceId),
+    [activeInstanceId, instances],
+  );
+
+  const refreshInstances = useCallback(() => {
+    setInstancesVersion((version) => version + 1);
+  }, []);
 
   // Hydrates saved media object URLs after the first client render.
   useEffect(() => {
     let active = true;
+    const sourcePage = loadInstancePageConfig(pageKey, activeInstanceId);
 
-    hydratePageConfigMedia(loadPageConfig(pageKey)).then((hydratedPage) => {
+    hydratePageConfigMedia(sourcePage).then((hydratedPage) => {
       if (active) setPage(hydratedPage);
     });
 
     return () => {
       active = false;
     };
-  }, [pageKey]);
+  }, [activeInstanceId, pageKey]);
 
   const selectedElement = useMemo(
     () => page.elements?.find((element) => element.id === selectedId),
@@ -214,6 +256,63 @@ export default function EditablePreview({ pageKey }: EditablePreviewProps) {
     setSelectedId(undefined);
   }, [selectedId]);
 
+  const getDraftInstanceName = (fallback: string) =>
+    instanceNameRef.current?.value.trim() || fallback;
+
+  const createNewInstance = () => {
+    const name = getDraftInstanceName("New instance");
+    const emptyConfig = {
+      ...getDefaultPageConfig(pageKey),
+      elements: [],
+    };
+
+    const instance = createInstance(pageKey, name, emptyConfig);
+    refreshInstances();
+    if (instance) {
+      setStatusMessage(`Created instance "${instance.name}".`);
+      navigate(getPreviewPath(pageKey, instance.id));
+    }
+  };
+
+  const duplicateCurrentInstance = () => {
+    const name = getDraftInstanceName(`${activeInstance?.name || "Default"} copy`);
+
+    const instance = duplicateInstance(
+      pageKey,
+      activeInstanceId,
+      name,
+      page,
+    );
+    refreshInstances();
+    if (instance) {
+      setStatusMessage(`Duplicated instance "${instance.name}".`);
+      navigate(getPreviewPath(pageKey, instance.id));
+    }
+  };
+
+  const renameCurrentInstance = () => {
+    if (!activeInstanceId) return;
+
+    const name = getDraftInstanceName(activeInstance?.name || activeInstanceId);
+
+    renameInstance(pageKey, activeInstanceId, name);
+    refreshInstances();
+    setStatusMessage(`Renamed instance "${name}".`);
+  };
+
+  const deleteCurrentInstance = () => {
+    if (!activeInstanceId) return;
+
+    const confirmed = window.confirm(
+      `Delete "${activeInstance?.name || activeInstanceId}"?`,
+    );
+    if (!confirmed) return;
+
+    deleteInstance(pageKey, activeInstanceId);
+    refreshInstances();
+    navigate(getPreviewPath(pageKey));
+  };
+
   // Removes the selected element with Delete/Backspace while editing.
   useEffect(() => {
     if (!isEditing || !selectedId) return;
@@ -236,7 +335,17 @@ export default function EditablePreview({ pageKey }: EditablePreviewProps) {
   // Saves the current page config and exits edit mode.
   const save = () => {
     try {
-      savePageConfig(page);
+      if (activeInstanceId) {
+        saveInstance(
+          pageKey,
+          activeInstanceId,
+          activeInstance?.name || activeInstanceId,
+          page,
+        );
+        refreshInstances();
+      } else {
+        savePageConfig(page);
+      }
       setStatusMessage(undefined);
       setIsEditing(false);
     } catch {
@@ -259,6 +368,74 @@ export default function EditablePreview({ pageKey }: EditablePreviewProps) {
         </EditorViewport>
 
         <section className="flex w-[360px] shrink-0 flex-col gap-4">
+          <div className="rounded-lg border border-white/15 bg-zinc-950 p-3 text-white shadow-xl">
+            <label className="grid gap-2 text-xs font-semibold text-zinc-300">
+              Instance
+              <select
+                value={activeInstanceId || ""}
+                onChange={(event) =>
+                  navigate(getPreviewPath(pageKey, event.target.value || undefined))
+                }
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white"
+              >
+                <option value="">Default</option>
+                {instances.map((instance) => (
+                  <option key={instance.id} value={instance.id}>
+                    {instance.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mt-3 grid gap-2 text-xs font-semibold text-zinc-300">
+              Name
+              <input
+                key={activeInstanceId || "default-instance-name"}
+                ref={instanceNameRef}
+                defaultValue={activeInstance?.name || ""}
+                placeholder={
+                  activeInstanceId
+                    ? "Instance name"
+                    : "Name for new or duplicate instance"
+                }
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white"
+              />
+            </label>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={createNewInstance}
+                className="rounded bg-zinc-800 px-3 py-2 text-xs font-bold text-white transition hover:bg-zinc-700"
+              >
+                New
+              </button>
+              <button
+                type="button"
+                onClick={duplicateCurrentInstance}
+                className="rounded bg-zinc-800 px-3 py-2 text-xs font-bold text-white transition hover:bg-zinc-700"
+              >
+                Duplicate
+              </button>
+              <button
+                type="button"
+                onClick={renameCurrentInstance}
+                disabled={!activeInstanceId}
+                className="rounded bg-zinc-800 px-3 py-2 text-xs font-bold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Rename
+              </button>
+              <button
+                type="button"
+                onClick={deleteCurrentInstance}
+                disabled={!activeInstanceId}
+                className="rounded bg-red-950 px-3 py-2 text-xs font-bold text-red-100 transition hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+
           <EditorToolbar
             isEditing={isEditing}
             placement="rail"

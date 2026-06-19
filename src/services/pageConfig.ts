@@ -5,7 +5,7 @@ import { getMediaObjectUrl } from "./mediaStorage";
 const STORAGE_PREFIX = "interactives.page.";
 
 // Deep-clones page config so editor changes never mutate the static defaults.
-function clonePage(page: InteractivePageConfig): InteractivePageConfig {
+export function clonePage(page: InteractivePageConfig): InteractivePageConfig {
   return JSON.parse(JSON.stringify(page)) as InteractivePageConfig;
 }
 
@@ -15,7 +15,9 @@ function getStorageKey(slug: string) {
 }
 
 // Removes temporary blob URLs before saving because IndexedDB owns the real media.
-function preparePageForStorage(page: InteractivePageConfig): InteractivePageConfig {
+export function preparePageForStorage(
+  page: InteractivePageConfig,
+): InteractivePageConfig {
   const copy = clonePage(page);
 
   if (copy.background?.storageId && copy.background.src?.startsWith("blob:")) {
@@ -40,7 +42,9 @@ function preparePageForStorage(page: InteractivePageConfig): InteractivePageConf
 }
 
 // Converts older image/video/color fields into the current background shape.
-function normalizePageConfig(page: InteractivePageConfig): InteractivePageConfig {
+export function normalizePageConfig(
+  page: InteractivePageConfig,
+): InteractivePageConfig {
   if (page.background) return page;
 
   if (page.backgroundVideo || page.video) {
@@ -109,7 +113,8 @@ export function loadPageConfig(key: PageKey): InteractivePageConfig {
     return normalizePageConfig({
       ...fallback,
       ...parsed,
-      elements: parsed.elements || fallback.elements,
+      elements:
+        parsed.elements !== undefined ? parsed.elements : fallback.elements,
       background: parsed.background || fallback.background,
     });
   } catch {

@@ -308,6 +308,27 @@ export default function ElementSettingsPanel({
                   value={selectedElement.color || "#ffffff"}
                   onChange={(color) => updateSelected({ color })}
                 />
+
+                <ColorPicker
+                  id="text-bg-color"
+                  label="Background color"
+                  value={selectedElement.bgColor || "#000000"}
+                  onChange={(bgColor) => updateSelected({ bgColor })}
+                />
+
+                <label className="grid gap-2 text-xs font-semibold text-zinc-300">
+                  Background opacity
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={selectedElement.bgOpacity ?? 0}
+                    onChange={(event) =>
+                      updateSelected({ bgOpacity: Number(event.target.value) })
+                    }
+                  />
+                </label>
               </>
             )}
 
