@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import EditableCanvas from "./EditableCanvas";
 import EditorToolbar, { type AddElementType } from "./EditorToolbar";
 import EditorViewport from "./EditorViewport";
 import ElementSettingsPanel from "./ElementSettingsPanel";
 import InteractiveRenderer from "./InteractiveRenderer";
-import type { PageKey } from "../config/pages";
+import { pages, type PageKey } from "../config/pages";
 import { saveMediaFile } from "../services/mediaStorage";
 import {
   createInstance,
@@ -48,6 +48,13 @@ function getPreviewPath(pageKey: PageKey, instanceId?: string) {
     orderConfirmation: "/preview/order_confirmation",
     propBet: "/preview/prop_bet",
   }[pageKey];
+
+  return instanceId ? `${base}/${instanceId}` : base;
+}
+
+function getLivePath(pageKey: PageKey, instanceId?: string) {
+  const page = pages[pageKey];
+  const base = page.publicPath || `/${page.slug || page.type}`;
 
   return instanceId ? `${base}/${instanceId}` : base;
 }
@@ -482,6 +489,28 @@ export default function EditablePreview({ pageKey }: EditablePreviewProps) {
   return (
     <div className="relative h-full w-full">
       <InteractiveRenderer page={page} mode="preview" />
+
+      <Link
+        to={getLivePath(pageKey, activeInstanceId)}
+        title="Open live page"
+        aria-label="Open live page"
+        className="absolute left-5 top-5 z-40 inline-flex h-9 items-center gap-2 rounded-[1rem] border-2 border-white bg-black px-3.5 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/35 transition hover:-translate-y-0.5 hover:bg-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      >
+        <span>Live</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.4"
+        >
+          <path d="M7 17 17 7" />
+          <path d="M8 7h9v9" />
+        </svg>
+      </Link>
 
       <EditorToolbar
         isEditing={false}
